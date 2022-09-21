@@ -10,38 +10,46 @@ class Game
     @winner = nil
   end
 
-  public
   def run_game
-	  until @game_over
+    until @game_over
       column_index, row_index = prompt_user(@player1)
-      next unless column_index.between?(0, 2) && row_index.between?(0, 2) && @board.layout[row_index][column_index] == ' '
-      @player1.draw_point(@board, row_index, column_index)
-      @board.render_board
-      check_outcome(@board, @player1.draw_symbol, @player2.draw_symbol)
+      next unless valid?(row_index, column_index)
+
+      process_turn(@player1, row_index, column_index)
       break if @game_over
+
       column_index, row_index = prompt_user(@player2)
-      next unless column_index.between?(0, 2) && row_index.between?(0, 2) && @board.layout[row_index][column_index] == ' '
-      @player2.draw_point(@board, row_index, column_index)
-      @board.render_board
-      check_outcome(@board, @player1.draw_symbol, @player2.draw_symbol)
+      next unless valid?(row_index, column_index)
+
+      process_turn(@player2, row_index, column_index)
       break if @game_over
     end
-
-    end_prompt
+    print_outro
   end
 
-  def start_prompt
+  def print_intro
     puts 'The game has began.'
     puts 'Choose a point by type in a number between 0 and 2.'
     puts "\n\n"
   end
 
-  def end_prompt
-    puts "Thank you for playing."
-    puts "The winner is #{winner.name} || 'nobody'."
+  def valid?(row, col)
+    row.between?(0, 2) && col.between?(0, 2) && @board.layout[row][col] == ' '
+  end
+
+  def process_turn(player, row_index, column_index)
+    player.draw_point(@board, row_index, column_index)
+    @board.render_board
+    check_outcome(@board, @player1.draw_symbol, @player2.draw_symbol)
+  end
+
+  def print_outro
+    puts 'Thank you for playing.'
+    puts @winner.nil? ? 'Tie game.' : "The winner is #{winner.name}."
   end
 
   private
+
   attr_accessor :game_over, :winner
 
   def prompt_user(user)
@@ -53,6 +61,7 @@ class Game
   end
 
   def check_outcome(board, symbol1, symbol2)
+    # check horizontal
     board.layout.each do |row|
       if row.all?(symbol1)
         @game_over = true
@@ -63,23 +72,26 @@ class Game
       end
     end
 
-    if board.layout[0][0] == board.layout[1][1] && board.layout[1][1] == board.layout[2][2] && board.layout[0][0] != ' '
-      if board.layout[0][0] == symbol1
-        @winner = @player1
-      else
-        @winner = @player2
-      end
+    # check vertical and slope
+    slot = board.layout
+    if slot[0][0] == slot[1][1] && slot[1][1] == slot[2][2] && slot[0][0] != ' '
+      @winner = slot[0][0] == symbol1 ? @player1 : player2
       @game_over = true
-    elsif board.layout[2][0] == board.layout[1][1] && board.layout[1][1] == board.layout[0][2] && board.layout[2][0] != ' '
-      if board.layout[2][0] == symbol1
-        @winner = @player1
-      else
-        @winner = @player2
-      end
+    elsif slot[2][0] == slot[1][1] && slot[1][1] == slot[0][2] && slot[2][0] != ' '
+      @winner = slot[0][0] == symbol1 ? @player1 : player2
+      @game_over = true
+    elsif slot[0][0] == slot[1][0] && slot[1][0] == slot[2][0] && slot[0][0] != ' '
+      @winner = slot[0][0] == symbol1 ? @player1 : player2
+      @game_over = true
+    elsif slot[0][1] == slot[1][1] && slot[1][1] == slot[2][1] && slot[0][1] != ' '
+      @winner = slot[0][1] == symbol1 ? @player1 : player2
+      @game_over = true
+    elsif slot[0][2] == slot[1][2] && slot[1][2] == slot[2][2] && slot[0][2] != ' '
+      @winner = slot[0][2] == symbol1 ? @player1 : player2
       @game_over = true
     end
 
-    @game_over = true unless board.layout.flatten.include?(' ')
+    @game_over = true unless slot.flatten.include?(' ')
   end
 end
 
@@ -113,5 +125,5 @@ class Player
 end
 
 game = Game.new
-game.start_prompt
+game.print_intro
 game.run_game
