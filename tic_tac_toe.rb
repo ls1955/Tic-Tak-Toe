@@ -6,26 +6,32 @@ class Game
     @board = Board.new
     @player1 = Player.new
     @player2 = Player.new('Player-2', 'X')
-    @game_over = false
     @winner = nil
   end
 
-  def run_game
-    until @game_over
+  def run
+    print_intro
+
+    until game_over?
       column_index, row_index = prompt_user(@player1)
       next unless valid?(row_index, column_index)
 
       process_turn(@player1, row_index, column_index)
-      break if @game_over
+      break if game_over?
 
       column_index, row_index = prompt_user(@player2)
       next unless valid?(row_index, column_index)
 
       process_turn(@player2, row_index, column_index)
-      break if @game_over
+      break if game_over?
     end
+
     print_outro
   end
+
+  private
+
+  attr_accessor :game_over, :winner
 
   def print_intro
     puts 'The game has began.'
@@ -40,17 +46,12 @@ class Game
   def process_turn(player, row_index, column_index)
     player.draw_point(@board, row_index, column_index)
     @board.render_board
-    check_outcome(@board, @player1.draw_symbol, @player2.draw_symbol)
   end
 
   def print_outro
     puts 'Thank you for playing.'
     puts @winner.nil? ? 'Tie game.' : "The winner is #{winner.name}."
   end
-
-  private
-
-  attr_accessor :game_over, :winner
 
   def prompt_user(user)
     puts "#{user.name} please select a row."
@@ -60,43 +61,70 @@ class Game
     [column_index, row_index]
   end
 
-  def check_outcome(board, symbol1, symbol2)
-    # check horizontal
-    board.layout.each do |row|
-      if row.all?(symbol1)
-        @game_over = true
-        @winner = @player1
-      elsif row.all?(symbol2)
-        @game_over = true
-        @winner = @player2
+  def game_over?
+    horizontal_check || vertical_check || diagonal_check || full?
+  end
+
+  def horizontal_check
+    @board.layout.each do |row|
+      if row.all?('O') || row.all?('X')
+        @winner = row[0] == 'O' ? @player1 : @player2
+
+        return true
       end
     end
 
-    # check vertical and slope
-    slot = board.layout
-    if slot[0][0] == slot[1][1] && slot[1][1] == slot[2][2] && slot[0][0] != ' '
-      @winner = slot[0][0] == symbol1 ? @player1 : player2
-      @game_over = true
-    elsif slot[2][0] == slot[1][1] && slot[1][1] == slot[0][2] && slot[2][0] != ' '
-      @winner = slot[0][0] == symbol1 ? @player1 : player2
-      @game_over = true
-    elsif slot[0][0] == slot[1][0] && slot[1][0] == slot[2][0] && slot[0][0] != ' '
-      @winner = slot[0][0] == symbol1 ? @player1 : player2
-      @game_over = true
-    elsif slot[0][1] == slot[1][1] && slot[1][1] == slot[2][1] && slot[0][1] != ' '
-      @winner = slot[0][1] == symbol1 ? @player1 : player2
-      @game_over = true
-    elsif slot[0][2] == slot[1][2] && slot[1][2] == slot[2][2] && slot[0][2] != ' '
-      @winner = slot[0][2] == symbol1 ? @player1 : player2
-      @game_over = true
+    false
+  end
+
+  def vertical_check
+    slot = @board.layout
+
+    3.times do |i|
+      col = [slot[0][i], slot[1][i], slot[2][i]]
+
+      if col.all?('0') || col.all?('X')
+        @winner = col[0] == 'O' ? @player1 : @player2
+
+        return true
+      end
     end
 
-    @game_over = true unless slot.flatten.include?(' ')
+    false
+  end
+
+  def diagonal_check
+    slot = @board.layout
+    diagonal1 = []
+    diagonal2 = []
+
+    3.times do |i|
+      diagonal1 << slot[i][i]
+      diagonal2 << slot[2 - i][i]
+    end
+
+    if diagonal1.all?('O') || diagonal1.all?('X')
+      @winner = diagonal1[0] == 'O' ? @player1 : @player2
+
+      return true
+    elsif diagonal2.all?('O') || diagonal2.all?('X')
+      @winner = diagonal1[0] == 'O' ? @player1 : @player2
+
+      return true
+    end
+
+    false
+  end
+
+  def full?
+    !@board.layout.flatten.include?(' ')
   end
 end
 
 # The board where the marks are drawn
 class Board
+  attr_accessor :layout
+
   def initialize
     @layout = Array.new(3) { Array.new(3, ' ') }
   end
@@ -106,8 +134,6 @@ class Board
     @layout.each { |row| p row }
     puts "\n"
   end
-
-  attr_accessor :layout
 end
 
 # User who could insert point on board
@@ -124,6 +150,4 @@ class Player
   end
 end
 
-game = Game.new
-game.print_intro
-game.run_game
+Game.new.run
