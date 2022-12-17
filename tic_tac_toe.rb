@@ -2,6 +2,8 @@
 
 # The main event of game
 class Game
+  attr_accessor :board, :player1, :player2
+
   def initialize
     @board = Board.new
     @player1 = Player.new
@@ -10,8 +12,12 @@ class Game
   end
 
   def run
-    print_intro
+    intro
+    round
+    outro
+  end
 
+  def round
     until game_over?
       column_index, row_index = prompt_user(@player1)
       next unless valid?(row_index, column_index)
@@ -25,15 +31,17 @@ class Game
       process_turn(@player2, row_index, column_index)
       break if game_over?
     end
+  end
 
-    print_outro
+  def game_over?
+    horizontal_check || vertical_check || diagonal_check || full?
   end
 
   private
 
   attr_accessor :game_over, :winner
 
-  def print_intro
+  def intro
     puts 'The game has began.'
     puts 'Choose a point by type in a number between 0 and 2.'
     puts "\n\n"
@@ -48,21 +56,21 @@ class Game
     @board.render_board
   end
 
-  def print_outro
+  def outro
     puts 'Thank you for playing.'
     puts @winner.nil? ? 'Tie game.' : "The winner is #{winner.name}."
   end
 
   def prompt_user(user)
     puts "#{user.name} please select a row."
-    row_index = gets.to_i
-    puts "#{user.name} please select a column."
-    column_index = gets.to_i
-    [column_index, row_index]
-  end
 
-  def game_over?
-    horizontal_check || vertical_check || diagonal_check || full?
+    row_index = gets.to_i
+
+    puts "#{user.name} please select a column."
+
+    column_index = gets.to_i
+
+    [column_index, row_index]
   end
 
   def horizontal_check
@@ -83,11 +91,11 @@ class Game
     3.times do |i|
       col = [slot[0][i], slot[1][i], slot[2][i]]
 
-      if col.all?('0') || col.all?('X')
-        @winner = col[0] == 'O' ? @player1 : @player2
+      next unless col.all?('O') || col.all?('X')
 
-        return true
-      end
+      @winner = col[0] == 'O' ? @player1 : @player2
+
+      return true
     end
 
     false
@@ -149,5 +157,3 @@ class Player
     board.layout[row_index][column_index] = @draw_symbol
   end
 end
-
-Game.new.run
